@@ -11,6 +11,7 @@ using System.Windows.Controls.Primitives;
 using System.Collections.Specialized;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace RichCanvas
 {
@@ -441,36 +442,6 @@ namespace RichCanvas
         }
 
         /// <summary>
-        /// Gets or sets current key used to zoom.
-        /// Default is <see cref="Key.LeftCtrl"/>.
-        /// </summary>
-        public static DependencyProperty ZoomKeyProperty = DependencyProperty.Register(nameof(ZoomKey), typeof(Key), typeof(RichItemsControl), new FrameworkPropertyMetadata(Key.LeftCtrl));
-        /// <summary>
-        /// Gets or sets current key used to zoom.
-        /// Default is <see cref="Key.LeftCtrl"/>.
-        /// </summary>
-        public Key ZoomKey
-        {
-            get => (Key)GetValue(ZoomKeyProperty);
-            set => SetValue(ZoomKeyProperty, value);
-        }
-
-        /// <summary>
-        /// Gets or sets current key used for panning.
-        /// Default is <see cref="Key.Space"/>.
-        /// </summary>
-        public static DependencyProperty PanningKeyProperty = DependencyProperty.Register(nameof(PanningKey), typeof(Key), typeof(RichItemsControl), new FrameworkPropertyMetadata(Key.Space));
-        /// <summary>
-        /// Gets or sets current key used for panning.
-        /// Default is <see cref="Key.Space"/>.
-        /// </summary>
-        public Key PanningKey
-        {
-            get => (Key)GetValue(PanningKeyProperty);
-            set => SetValue(PanningKeyProperty, value);
-        }
-
-        /// <summary>
         /// Occurs whenever <see cref="RichItemsControl.ScaleTransform"/> changes.
         /// </summary>
         public static readonly RoutedEvent ZoomingEvent = EventManager.RegisterRoutedEvent(nameof(Zooming), RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(RichItemsControl));
@@ -609,8 +580,8 @@ namespace RichCanvas
         #region Internal Properties
         internal RichCanvas? ItemsHost => _mainPanel;
         internal TransformGroup? SelectionRectangleTransform { get; private set; }
-        internal bool IsPanning => Keyboard.IsKeyDown(PanningKey);
-        internal bool IsZooming => Keyboard.IsKeyDown(ZoomKey);
+        internal bool IsPanning { get; set; } = false;
+        internal bool IsZooming { get; set; } = true;
         internal bool IsDrawing => _isDrawing;
         internal RichItemContainer CurrentDrawingItem => _drawingGesture.CurrentItem;
         internal bool HasCustomBehavior { get; set; }
@@ -731,6 +702,15 @@ namespace RichCanvas
                         UnselectAll();
                     }
                 }
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
+        {
+            if (base.SelectedItems.Count > 0 || SelectedItem != null)
+            {
+                UnselectAll();
             }
         }
 

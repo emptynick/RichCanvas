@@ -1,5 +1,6 @@
 ﻿using RichCanvas.Gestures;
 using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -329,21 +330,32 @@ namespace RichCanvas
         #region Override Methods
 
         /// <inheritdoc/>
-        protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+        protected override void OnPreviewMouseRightButtonDown(MouseButtonEventArgs e)
         {
-            if (Keyboard.IsKeyDown(Key.Space) && _parent != null && _parent.IsPanning)
+            if (_parent != null)
             {
+                _parent.IsPanning = true;
                 _panInitialPosition = e.GetPosition(this);
                 CaptureMouse();
             }
         }
 
         /// <inheritdoc/>
+        protected override void OnPreviewMouseRightButtonUp(MouseButtonEventArgs e)
+        {
+            if (_parent != null) {
+                _parent.IsPanning = false;
+            }
+        }
+
+        /// <inheritdoc/>
         protected override void OnPreviewMouseMove(MouseEventArgs e)
         {
-            if (Mouse.LeftButton == MouseButtonState.Pressed && _parent != null && _parent.IsPanning
+            if (Mouse.RightButton == MouseButtonState.Pressed && _parent != null && _parent.IsPanning
                 && IsMouseCaptured)
             {
+
+                CaptureMouse();
                 var currentPosition = e.GetPosition(this);
                 Pan(_panInitialPosition, currentPosition);
                 _panInitialPosition = currentPosition;
