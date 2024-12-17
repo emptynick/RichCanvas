@@ -420,21 +420,6 @@ namespace RichCanvas
         }
 
         /// <summary>
-        /// Gets or sets whether caching is disabled.
-        /// Default is <see langword="true"/>.
-        /// </summary>
-        public static DependencyProperty DisableCacheProperty = DependencyProperty.Register(nameof(DisableCache), typeof(bool), typeof(RichItemsControl), new FrameworkPropertyMetadata(true, OnDisableCacheChanged));
-        /// <summary>
-        /// Gets or sets whether caching is disabled.
-        /// Default is <see langword="true"/>.
-        /// </summary>
-        public bool DisableCache
-        {
-            get => (bool)GetValue(DisableCacheProperty);
-            set => SetValue(DisableCacheProperty, value);
-        }
-
-        /// <summary>
         /// Get only key of <see cref="IsDraggingProperty"/>
         /// </summary>
         protected static readonly DependencyPropertyKey IsDraggingPropertyKey = DependencyProperty.RegisterReadOnly(nameof(IsDragging), typeof(bool), typeof(RichItemsControl), new FrameworkPropertyMetadata(false));
@@ -639,7 +624,7 @@ namespace RichCanvas
 
             MainPanel = (RichCanvas)GetTemplateChild(DrawingPanelName);
             MainPanel.ItemsOwner = this;
-            SetCachingMode(DisableCache);
+            MainPanel.CacheMode = null;
 
             _canvasContainer = (PanningGrid)GetTemplateChild(CanvasContainerName);
             _canvasContainer.Initialize(this);
@@ -668,15 +653,11 @@ namespace RichCanvas
         /// <inheritdoc/>
         protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
         {
-            if (IsPanning)
-            {
+            if (IsPanning) {
                 Cursor = Cursors.Hand;
-            }
-            else
-            {
+            } else {
                 Point position = e.GetPosition(ItemsHost);
-                if (!VisualHelper.HasScrollBarParent((DependencyObject)e.OriginalSource))
-                {
+                if (!VisualHelper.HasScrollBarParent((DependencyObject)e.OriginalSource)) {
                     if (_currentDrawingIndexes.Count > 0)
                     {
                         for (int i = 0; i < _currentDrawingIndexes.Count; i++)
@@ -806,8 +787,6 @@ namespace RichCanvas
         #endregion
 
         #region Properties Callbacks
-        private static void OnDisableCacheChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((RichItemsControl)d).SetCachingMode((bool)e.NewValue);
-
         private static void OnOffsetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((RichItemsControl)d).OverrideTranslate((Point)e.NewValue);
 
         private static void OnDisableScrollChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((RichItemsControl)d).OnDisableScrollChanged((bool)e.NewValue);
@@ -1184,26 +1163,6 @@ namespace RichCanvas
                 Position = currentPosition
             });
             RaiseEvent(newEventArgs);
-        }
-
-        private void SetCachingMode(bool disable)
-        {
-            if (MainPanel != null)
-            {
-                if (!disable)
-                {
-                    MainPanel.CacheMode = new BitmapCache()
-                    {
-                        EnableClearType = false,
-                        SnapsToDevicePixels = false,
-                        RenderAtScale = Scale
-                    };
-                }
-                else
-                {
-                    MainPanel.CacheMode = null;
-                }
-            }
         }
 
         private void OverrideTranslate(Point newValue)
