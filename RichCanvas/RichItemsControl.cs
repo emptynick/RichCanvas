@@ -38,8 +38,6 @@ namespace RichCanvas
 
         public RichCanvas? MainPanel { get; set; }
         private PanningGrid? _canvasContainer;
-        private bool _isDrawing;
-        private readonly Gestures.Drawing _drawingGesture;
         private readonly Selecting _selectingGesture;
         private DispatcherTimer? _autoPanTimer;
         private readonly List<int> _currentDrawingIndexes = new List<int>();
@@ -397,19 +395,6 @@ namespace RichCanvas
         }
 
         /// <summary>
-        /// Occurs whenever <see cref="RichItemsControl.OnMouseLeftButtonUp(MouseButtonEventArgs)"/> is triggered and the drawing operation finished.
-        /// </summary>
-        public static readonly RoutedEvent DrawingEndedEvent = EventManager.RegisterRoutedEvent(nameof(DrawingEnded), RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(RichItemsControl));
-        /// <summary>
-        /// Occurs whenever <see cref="RichItemsControl.OnMouseLeftButtonUp(MouseButtonEventArgs)"/> is triggered and the drawing operation finished.
-        /// </summary>
-        public event RoutedEventHandler DrawingEnded
-        {
-            add { AddHandler(DrawingEndedEvent, value); }
-            remove { RemoveHandler(DrawingEndedEvent, value); }
-        }
-
-        /// <summary>
         /// Occurs whenever <see cref="RichItemsControl.TranslateTransform"/> changes.
         /// </summary>
         public static readonly RoutedEvent ScrollingEvent = EventManager.RegisterRoutedEvent(nameof(Scrolling), RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(RichItemsControl));
@@ -607,8 +592,6 @@ namespace RichCanvas
         internal TransformGroup? SelectionRectangleTransform { get; private set; }
         internal bool IsPanning { get; set; } = false;
         internal bool IsZooming { get; set; } = true;
-        internal bool IsDrawing => _isDrawing;
-        internal RichItemContainer CurrentDrawingItem => _drawingGesture.CurrentItem;
         internal bool HasCustomBehavior { get; set; }
         internal IList BaseSelectedItems => base.SelectedItems;
         internal bool InitializedScrollBarVisiblity { get; private set; }
@@ -635,7 +618,6 @@ namespace RichCanvas
             };
             DragBehavior.ItemsControl = this;
             _selectingGesture = new Selecting(this);
-            _drawingGesture = new Gestures.Drawing(this);
         }
 
         #endregion
@@ -711,8 +693,6 @@ namespace RichCanvas
                                 else
                                 {
                                     CaptureMouse();
-                                    _isDrawing = true;
-                                    _drawingGesture.OnMouseDown(container, position);
                                     _currentDrawingIndexes.Remove(_currentDrawingIndexes[i]);
                                     break;
                                 }
@@ -720,7 +700,7 @@ namespace RichCanvas
                         }
                     }
 
-                    if (SelectionEnabled && !_isDrawing && !IsDragging && !HasCustomBehavior)
+                    if (SelectionEnabled && !IsDragging && !HasCustomBehavior)
                     {
                         IsSelecting = true;
                         _selectingGesture.OnMouseDown(position);
@@ -749,11 +729,7 @@ namespace RichCanvas
         {
             MousePosition = new Point(e.GetPosition(MainPanel).X, e.GetPosition(MainPanel).Y);
 
-            if (_isDrawing)
-            {
-                _drawingGesture.OnMouseMove(MousePosition);
-            }
-            else if (IsSelecting)
+            if (IsSelecting)
             {
                 _selectingGesture.OnMouseMove(MousePosition);
 
@@ -767,17 +743,7 @@ namespace RichCanvas
         /// <inheritdoc/>
         protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
         {
-            if (_isDrawing)
-            {
-                _isDrawing = false;
-                var drawnItem = _drawingGesture.OnMouseUp();
-
-                RaiseDrawEndedEvent(drawnItem.DataContext);
-                _drawingGesture.Dispose();
-
-                ItemsHost?.InvalidateMeasure();
-            }
-            else if (!IsDragging && IsSelecting)
+            if (!IsDragging && IsSelecting)
             {
                 IsSelecting = false;
 
@@ -1294,36 +1260,19 @@ namespace RichCanvas
 
                 if (mousePosition.Y <= 0)
                 {
-                    if (_isDrawing)
-                    {
-                        CurrentDrawingItem.Height = Math.Abs(transformedPosition.Y - CurrentDrawingItem.Top);
-                    }
-
                     ScrollContainer.PanVertically(-AutoPanSpeed);
                 }
                 else if (mousePosition.Y >= ScrollContainer.ViewportHeight)
                 {
-                    if (_isDrawing)
-                    {
-                        CurrentDrawingItem.Height = Math.Abs(transformedPosition.Y - CurrentDrawingItem.Top);
-                    }
                     ScrollContainer.PanVertically(AutoPanSpeed);
                 }
 
                 if (mousePosition.X <= 0)
                 {
-                    if (_isDrawing)
-                    {
-                        CurrentDrawingItem.Width = Math.Abs(transformedPosition.X - CurrentDrawingItem.Left);
-                    }
                     ScrollContainer.PanHorizontally(-AutoPanSpeed);
                 }
                 else if (mousePosition.X >= ScrollContainer.ViewportWidth)
                 {
-                    if (_isDrawing)
-                    {
-                        CurrentDrawingItem.Width = Math.Abs(transformedPosition.X - CurrentDrawingItem.Left);
-                    }
                     ScrollContainer.PanHorizontally(AutoPanSpeed);
                 }
 
@@ -1345,11 +1294,6 @@ namespace RichCanvas
             {
                 _autoPanTimer.Interval = TimeSpan.FromMilliseconds(AutoPanTickRate);
             }
-        }
-        private void RaiseDrawEndedEvent(object context)
-        {
-            RoutedEventArgs newEventArgs = new RoutedEventArgs(DrawingEndedEvent, context);
-            RaiseEvent(newEventArgs);
         }
 
         internal void OnScrollBarVisiblityChanged(ScrollBarVisibility scrollBarVisibility, bool isVertical = false, bool initalized = false)
