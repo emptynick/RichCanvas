@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using System.Windows.Input;
 
 namespace RichCanvas.Helpers
@@ -89,6 +90,8 @@ namespace RichCanvas.Helpers
             {
                 Point currentPosition = e.GetPosition(ItemsControl.ItemsHost);
                 var offset = currentPosition - _initialPosition;
+
+                ItemsControl.RaiseDraggingEvent(container, currentPosition);
 
                 if (offset.X != 0 || offset.Y != 0)
                 {

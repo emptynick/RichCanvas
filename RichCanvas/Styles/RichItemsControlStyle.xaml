@@ -59,8 +59,7 @@
                                 <Canvas RenderTransform="{Binding AppliedTransform, RelativeSource={RelativeSource TemplatedParent}}"
                                         x:Name="containerDrawing">
 
-                                    <local:RichCanvas x:Name="PART_Panel"
-                                                      IsItemsHost="True" />
+                                    <local:RichCanvas x:Name="PART_Panel" IsItemsHost="True" />
                                     
                                     <Rectangle x:Name="PART_SelectionRectangle"
                                                Visibility="{TemplateBinding IsSelecting, Converter={StaticResource BoolToVisConverter}}"

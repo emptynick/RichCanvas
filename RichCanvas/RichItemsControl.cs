@@ -36,7 +36,7 @@ namespace RichCanvas
         internal readonly ScaleTransform ScaleTransform = new ScaleTransform();
         internal readonly TranslateTransform TranslateTransform = new TranslateTransform();
 
-        private RichCanvas? _mainPanel;
+        public RichCanvas? MainPanel { get; set; }
         private PanningGrid? _canvasContainer;
         private bool _isDrawing;
         private readonly Gestures.Drawing _drawingGesture;
@@ -69,6 +69,19 @@ namespace RichCanvas
         {
             get => (Point)GetValue(MousePositionProperty);
             set => SetValue(MousePositionProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets mouse position relative to <see cref="RichItemsControl.ItemsHost"/> after right click.
+        /// </summary>
+        public static DependencyProperty RightClickMousePositionProperty = DependencyProperty.Register(nameof(RightClickMousePosition), typeof(Point), typeof(RichItemsControl), new FrameworkPropertyMetadata(default(Point)));
+        /// <summary>
+        /// Gets or sets mouse position relative to <see cref="RichItemsControl.ItemsHost"/>.
+        /// </summary>
+        public Point RightClickMousePosition
+        {
+            get => (Point)GetValue(RightClickMousePositionProperty);
+            set => SetValue(RightClickMousePositionProperty, value);
         }
 
         /// <summary>
@@ -410,6 +423,18 @@ namespace RichCanvas
         }
 
         /// <summary>
+        /// Occurs whenever <see cref="RichItemsControl.OnMouseLeftButtonUp(MouseButtonEventArgs)"/> is triggered and the drawing operation finished.
+        /// </summary>
+        public static readonly RoutedEvent DraggingEvent = EventManager.RegisterRoutedEvent(nameof(Dragging), RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(RichItemsControl));
+        /// <summary>
+        /// Occurs whenever <see cref="RichItemsControl.OnMouseLeftButtonUp(MouseButtonEventArgs)"/> is triggered and the drawing operation finished.
+        /// </summary>
+        public event RoutedEventHandler Dragging {
+            add { AddHandler(DraggingEvent, value); }
+            remove { RemoveHandler(DraggingEvent, value); }
+        }
+
+        /// <summary>
         /// Gets or sets whether caching is disabled.
         /// Default is <see langword="true"/>.
         /// </summary>
@@ -578,7 +603,7 @@ namespace RichCanvas
         #endregion
 
         #region Internal Properties
-        internal RichCanvas? ItemsHost => _mainPanel;
+        internal RichCanvas? ItemsHost => MainPanel;
         internal TransformGroup? SelectionRectangleTransform { get; private set; }
         internal bool IsPanning { get; set; } = false;
         internal bool IsZooming { get; set; } = true;
@@ -630,8 +655,8 @@ namespace RichCanvas
             };
             SelectionRectangleTransform = (TransformGroup)selectionRectangle.RenderTransform;
 
-            _mainPanel = (RichCanvas)GetTemplateChild(DrawingPanelName);
-            _mainPanel.ItemsOwner = this;
+            MainPanel = (RichCanvas)GetTemplateChild(DrawingPanelName);
+            MainPanel.ItemsOwner = this;
             SetCachingMode(DisableCache);
 
             _canvasContainer = (PanningGrid)GetTemplateChild(CanvasContainerName);
@@ -652,6 +677,11 @@ namespace RichCanvas
                 Children = new TransformCollection(new Transform[] { new ScaleTransform(), new TranslateTransform() })
             }
         };
+
+        /// <inheritdoc/>
+        protected override void OnPreviewMouseRightButtonDown(MouseButtonEventArgs e) {
+            RightClickMousePosition = e.GetPosition(ItemsHost);
+        }
 
         /// <inheritdoc/>
         protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -717,7 +747,7 @@ namespace RichCanvas
         /// <inheritdoc/>
         protected override void OnPreviewMouseMove(MouseEventArgs e)
         {
-            MousePosition = new Point(e.GetPosition(_mainPanel).X, e.GetPosition(_mainPanel).Y);
+            MousePosition = new Point(e.GetPosition(MainPanel).X, e.GetPosition(MainPanel).Y);
 
             if (_isDrawing)
             {
@@ -923,12 +953,11 @@ namespace RichCanvas
                 BeginUpdateSelectedItems();
             }
 
-            VisualTreeHelper.HitTest(_mainPanel, null,
+            VisualTreeHelper.HitTest(MainPanel, null,
                 new HitTestResultCallback(OnHitTestResultCallback),
                 new GeometryHitTestParameters(geom));
 
-            if (CanSelectMultipleItems)
-            {
+            if (CanSelectMultipleItems) {
                 EndUpdateSelectedItems();
             }
 
@@ -963,7 +992,7 @@ namespace RichCanvas
         {
             var intersectedElements = new List<object>();
             var rectangleGeometry = new RectangleGeometry(area);
-            VisualTreeHelper.HitTest(_mainPanel, null,
+            VisualTreeHelper.HitTest(MainPanel, null,
                 new HitTestResultCallback((HitTestResult result) =>
                 {
                     var geometryHitTestResult = (GeometryHitTestResult)result;
@@ -1104,7 +1133,9 @@ namespace RichCanvas
                 {
                     if (CanSelectMultipleItems)
                     {
-                        SelectedItems?.Add(container.DataContext);
+                        if (SelectedItems != null && !SelectedItems.Contains(container.DataContext)) {
+                            SelectedItems.Add(container.DataContext);
+                        }
                         container.IsSelected = true;
                     }
                     else
@@ -1175,19 +1206,27 @@ namespace RichCanvas
             _fromEvent = false;
         }
 
-        private void RaiseScrollingEvent(object context)
-        {
+        private void RaiseScrollingEvent (object context) {
             RoutedEventArgs newEventArgs = new RoutedEventArgs(ScrollingEvent, context);
+            RaiseEvent(newEventArgs);
+        }
+
+        public void RaiseDraggingEvent (object context, Point currentPosition) {
+            RoutedEventArgs newEventArgs = new RoutedEventArgs(DraggingEvent, new {
+                Container = this,
+                Target = context,
+                Position = currentPosition
+            });
             RaiseEvent(newEventArgs);
         }
 
         private void SetCachingMode(bool disable)
         {
-            if (_mainPanel != null)
+            if (MainPanel != null)
             {
                 if (!disable)
                 {
-                    _mainPanel.CacheMode = new BitmapCache()
+                    MainPanel.CacheMode = new BitmapCache()
                     {
                         EnableClearType = false,
                         SnapsToDevicePixels = false,
@@ -1196,7 +1235,7 @@ namespace RichCanvas
                 }
                 else
                 {
-                    _mainPanel.CacheMode = null;
+                    MainPanel.CacheMode = null;
                 }
             }
         }

@@ -24,6 +24,7 @@ namespace RichCanvas
         private Size _extent;
         private Size _viewport;
         private Point _panInitialPosition;
+        private bool _panHasChanged = false;
         private RichItemsControl? _parent;
         private Point _viewportBottomRightInitial;
         private Point _viewportTopLeftInitial = new Point(0, 0);
@@ -336,6 +337,7 @@ namespace RichCanvas
             {
                 _parent.IsPanning = true;
                 _panInitialPosition = e.GetPosition(this);
+                _panHasChanged = false;
                 CaptureMouse();
             }
         }
@@ -344,20 +346,28 @@ namespace RichCanvas
         protected override void OnPreviewMouseRightButtonUp(MouseButtonEventArgs e)
         {
             if (_parent != null) {
+                if (_parent.IsPanning && _panHasChanged) {
+                    e.Handled = true;
+                }
                 _parent.IsPanning = false;
             }
+
+            _panHasChanged = false;
         }
 
         /// <inheritdoc/>
         protected override void OnPreviewMouseMove(MouseEventArgs e)
         {
-            if (Mouse.RightButton == MouseButtonState.Pressed && _parent != null && _parent.IsPanning
-                && IsMouseCaptured)
+            if (Mouse.RightButton == MouseButtonState.Pressed && _parent != null && _parent.IsPanning && IsMouseCaptured)
             {
 
                 CaptureMouse();
                 var currentPosition = e.GetPosition(this);
                 Pan(_panInitialPosition, currentPosition);
+                // TODO: Improve this with a threshold
+                if (!Point.Equals(_panInitialPosition, currentPosition)) {
+                    _panHasChanged = true;
+                }
                 _panInitialPosition = currentPosition;
             }
         }

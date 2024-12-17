@@ -2,8 +2,7 @@
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
-		<TargetFrameworks>net5-windows;netcoreapp3.1;net48;net472;net80;net90</TargetFrameworks>
+		<TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
 		<LangVersion>8.0</LangVersion>
 		<UseWPF>true</UseWPF>
 		<Authors>Mircea Staicu</Authors>
